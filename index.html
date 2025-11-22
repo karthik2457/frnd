@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Love Question — Bubbles Theme</title>
+<style>
+  /* ---------- Page + Cute Bubbles Background ---------- */
+  :root{
+    --card-w: 360px;
+    --card-h: 420px;
+    --accent:#ff6b9a;
+    --accent-dark:#d33a6a;
+    --yes:#2563eb;
+    --no:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: Inter, system-ui, Arial, sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(180deg,#fff7fb 0%, #f6fbff 50%, #e8f7ff 100%);
+    overflow:hidden;
+  }
+
+  /* floating soft bubbles layer (big, blurred circles) */
+  .bubble-wrap{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+  }
+  .bubble{
+    position:absolute;
+    border-radius:50%;
+    filter: blur(6px);
+    opacity:0.18;
+    animation: bubbleFloat linear infinite;
+    mix-blend-mode:screen;
+  }
+  @keyframes bubbleFloat{
+    0%{ transform: translateY(20vh) scale(0.9); }
+    50%{ transform: translateY(-10vh) scale(1.05); }
+    100%{ transform: translateY(-60vh) scale(0.9); }
+  }
+
+  /* Main card in center */
+  .card{
+    width:var(--card-w);
+    height:var(--card-h);
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.82));
+    border-radius:20px;
+    box-shadow: 0 10px 40px rgba(16,24,40,0.18);
+    padding:22px;
+    position:relative;
+    z-index:10;
+    overflow:hidden;
+  }
+
+  h2{ margin:6px 0 2px 0; font-size:1.15rem; color:#0b1220; text-align:center;}
+  p.lead{ margin:0 0 12px 0; color:#475569; text-align:center; font-size:0.95rem; }
+
+  input[type="text"]{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid rgba(14,20,35,0.06);
+    font-size:1rem;
+    outline:none;
+  }
+
+  .btn-row{ display:flex; gap:12px; justify-content:center; margin-top:12px; align-items:center }
+  .btn{
+    padding:10px 16px;
+    border-radius:10px;
+    border:0;
+    cursor:pointer;
+    font-weight:700;
+    font-size:0.95rem;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.08);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active{ transform: translateY(1px) }
+
+  .start-btn{ background: linear-gradient(90deg,#34d399,#10b981); color:white; }
+  .yes-btn{ background: linear-gradient(90deg,var(--yes), #1e40af); color:white; position:relative; z-index:30; box-shadow: 0 8px 24px rgba(37,99,235,0.18); }
+  .no-btn{ background: linear-gradient(90deg,var(--no), #b91c1c); color:white; position:absolute; z-index:40; border-radius:10px; }
+
+  /* glowing outline for yes on hover */
+  .yes-btn:hover{
+    box-shadow: 0 12px 30px rgba(37,99,235,0.28), 0 0 20px rgba(37,99,235,0.12);
+    transform: translateY(-3px);
+  }
+
+  /* result message */
+  .result{
+    margin-top:12px;
+    text-align:center;
+    font-weight:700;
+    color:#0b1220;
+    display:none;
+  }
+
+  /* heart trail following mouse — small hearts */
+  .trail-heart{
+    position:fixed;
+    pointer-events:none;
+    font-size:16px;
+    transform: translate(-50%,-50%) scale(1);
+    opacity:0.95;
+    animation: trail-fade 900ms forwards;
+    z-index:20;
+  }
+  @keyframes trail-fade{
+    0%{ transform: translate(-50%,-50%) scale(1); opacity:1; }
+    100%{ transform: translate(-50%,-140%) scale(0.4); opacity:0; }
+  }
+
+  /* floating small sparkles (medium intensity) */
+  .spark{
+    position:absolute;
+    width:6px; height:6px;
+    border-radius:50%;
+    background: #fff;
+    opacity:0.9;
+    filter: drop-shadow(0 2px 8px rgba(255,255,255,0.6));
+    animation: sparkPop 1500ms ease-in-out infinite;
+    z-index:5;
+  }
+  @keyframes sparkPop{
+    0%{ transform: scale(0.3); opacity:0.2; }
+    50%{ transform: scale(1.1); opacity:1; }
+    100%{ transform: scale(0.4); opacity:0.3; }
+  }
+
+  /* yes-click explosion (short) */
+  .burst{
+    position:absolute;
+    font-size:20px;
+    pointer-events:none;
+    animation: burstAnim 800ms ease-out forwards;
+    z-index:40;
+  }
+  @keyframes burstAnim{
+    0%{ transform: scale(0.6); opacity:1; }
+    100%{ transform: translateY(-60px) scale(0.2); opacity:0; }
+  }
+
+  /* small responsive adjustments */
+  @media (max-width:420px){
+    :root{ --card-w:86vw; --card-h:62vh; }
+    .card{ padding:18px; border-radius:16px; }
+    h2{ font-size:1.05rem; }
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- dreamy bubbles background -->
+  <div class="bubble-wrap" aria-hidden="true">
+    <!-- we'll generate bubbles with JS -->
+  </div>
+
+  <!-- central card -->
+  <div class="card" id="card" role="region" aria-label="Question card">
+    <!-- Step 1: name -->
+    <div id="stepName">
+      <h2>Enter Your Name</h2>
+      <p class="lead">Click On Start</p>
+      <input id="herName" type="text" placeholder="Ex: User" aria-label="Her name" />
+      <div class="btn-row">
+        <button class="btn start-btn" id="startBtn">Start</button>
+      </div>
+    </div>
+
+    <!-- Step 2: question -->
+    <div id="stepQ" style="display:none;">
+      <h2 id="welcome">Hi!</h2>
+      <p class="lead">I Think You Are Not A Dog ? ❤️</p>
+
+      <div style="height:60px; position:relative;">
+        <!-- YES is static; NO will move but constrained within this card element -->
+        <button class="btn yes-btn" id="yesBtn" aria-label="Yes">Yes</button>
+        <button class="btn no-btn" id="noBtn" aria-label="No">No</button>
+      </div>
+
+      <div class="result" id="result">Awwww! I Know 🐕🥰</div>
+    </div>
+  </div>
+
+<script>
+/* ---------- Defaults chosen:
+   - Background: Cute Bubbles
+   - Music: OFF
+   - Sparkles: Medium
+*/
+
+/* ---------- Utility: random int ----------
+   returns integer in [min, max]
+*/
+function rint(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+/* ---------- Bubble generation (background) ---------- */
+const bubbleWrap = document.querySelector('.bubble-wrap');
+const BUBBLE_COUNT = 14;
+for(let i=0;i<BUBBLE_COUNT;i++){
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  // random sizes and pastel colors
+  const size = rint(90,260);
+  b.style.width = size+'px';
+  b.style.height = size+'px';
+  b.style.left = (Math.random()*100)+'%';
+  b.style.top = (Math.random()*100)+'%';
+  // soft pastel palette
+  const pal = [
+    'rgba(255,210,236,0.85)', // pink
+    'rgba(198,232,255,0.9)',  // light blue
+    'rgba(221,255,230,0.9)',  // mint
+    'rgba(255,238,210,0.9)'   // peach
+  ];
+  b.style.background = pal[Math.floor(Math.random()*pal.length)];
+  b.style.animationDuration = (rint(14,28))+'s';
+  b.style.animationDelay = (-rint(0,20))+'s';
+  b.style.transform = `translateY(${rint(-40,40)}vh)`;
+  bubbleWrap.appendChild(b);
+}
+
+/* ---------- Sparkles (medium) floating inside the card ---------- */
+const card = document.getElementById('card');
+const SPARKLE_COUNT = 8;
+for(let i=0;i<SPARKLE_COUNT;i++){
+  const s = document.createElement('div');
+  s.className = 'spark';
+  // place within card bounds
+  const cw = card.clientWidth, ch = card.clientHeight;
+  s.style.left = (10 + Math.random()*(cw-20)) + 'px';
+  s.style.top = (10 + Math.random()*(ch-20)) + 'px';
+  s.style.animationDuration = (1.2 + Math.random()*1.4) + 's';
+  s.style.opacity = (0.5 + Math.random()*0.6);
+  card.appendChild(s);
+  // subtle drift
+  (function(el){
+    setInterval(()=> {
+      el.style.left = (10 + Math.random()*(card.clientWidth-20)) + 'px';
+      el.style.top = (10 + Math.random()*(card.clientHeight-20)) + 'px';
+    }, rint(1800,3400));
+  })(s);
+}
+
+/* ---------- Heart trail following mouse (small hearts) ---------- */
+document.addEventListener('mousemove', (e) => {
+  // create occasional hearts — not too many
+  if(Math.random() > 0.8) {
+    const h = document.createElement('div');
+    h.className = 'trail-heart';
+    h.innerText = '💗';
+    // position near mouse
+    h.style.left = e.clientX + 'px';
+    h.style.top = e.clientY + 'px';
+    h.style.fontSize = (8 + Math.random()*18) + 'px';
+    document.body.appendChild(h);
+    setTimeout(()=> h.remove(), 900);
+  }
+});
+
+/* ---------- Name -> show question ---------- */
+const startBtn = document.getElementById('startBtn');
+const herNameInput = document.getElementById('herName');
+const stepName = document.getElementById('stepName');
+const stepQ = document.getElementById('stepQ');
+const welcome = document.getElementById('welcome');
+const yesBtn = document.getElementById('yesBtn');
+const noBtn = document.getElementById('noBtn');
+const result = document.getElementById('result');
+
+startBtn.addEventListener('click', ()=> {
+  const name = herNameInput.value.trim();
+  if(!name){
+    herNameInput.focus();
+    herNameInput.style.boxShadow = '0 0 0 4px rgba(255,107,154,0.14)';
+    setTimeout(()=> herNameInput.style.boxShadow='', 900);
+    return;
+  }
+  welcome.textContent = `Hi ${name} 😊`;
+  stepName.style.display = 'none';
+  stepQ.style.display = 'block';
+  // position yes/no nicely
+  positionButtonsInitial();
+});
+
+/* ---------- Position YES static and NO initial ---------- */
+function positionButtonsInitial(){
+  // center yes horizontally in the card
+  yesBtn.style.position = 'absolute';
+  yesBtn.style.left = (card.clientWidth/2 - 85) + 'px';
+  yesBtn.style.top = (card.clientHeight/2 - 10) + 'px';
+  // NO initial near right
+  noBtn.style.left = (card.clientWidth/2 + 30) + 'px';
+  noBtn.style.top = (card.clientHeight/2 - 10) + 'px';
+}
+
+/* ---------- NO button moves but constrained inside the card ---------- */
+noBtn.addEventListener('mouseenter', moveNoWithinCard);
+noBtn.addEventListener('click', moveNoWithinCard); // also move if clicked
+
+function moveNoWithinCard(){
+  // compute card bounding box (relative coords)
+  const rect = card.getBoundingClientRect();
+  const nbw = noBtn.offsetWidth, nbh = noBtn.offsetHeight;
+  const padding = 12; // keep some padding from card edges
+
+  // available area inside card where top-left of noBtn can be placed
+  const minX = rect.left + padding;
+  const maxX = rect.left + rect.width - nbw - padding;
+  const minY = rect.top + padding + 46; // keep above bottom area (approx)
+  const maxY = rect.top + rect.height - nbh - padding;
+
+  // choose a new random position that is not too close to the yes button
+  let tries = 0;
+  let nx, ny;
+  const yesRect = yesBtn.getBoundingClientRect();
+  do {
+    nx = rint(minX, maxX);
+    ny = rint(minY, maxY);
+    tries++;
+    // break if too many tries
+    if(tries>20) break;
+  } while( Math.hypot((nx - yesRect.left), (ny - yesRect.top)) < 90 );
+
+  // set position relative to card (so the button stays inside card)
+  noBtn.style.left = (nx - rect.left) + 'px';
+  noBtn.style.top = (ny - rect.top) + 'px';
+}
+
+/* ensure button positions adjust on resize */
+window.addEventListener('resize', ()=>{
+  if(stepQ.style.display !== 'none'){ positionButtonsInitial(); }
+});
+
+/* ---------- YES clicked: show message + burst of small hearts inside card ---------- */
+yesBtn.addEventListener('click', ()=>{
+  result.style.display = 'block';
+  result.textContent = `Awwww! I Know ${herNameInput.value.trim()} is Dog🐕 🥰`;
+  // create burst of hearts
+  const rect = yesBtn.getBoundingClientRect();
+  for(let i=0;i<14;i++){
+    const b = document.createElement('div');
+    b.className = 'burst';
+    b.innerText = ['✨','💖','💗','🌸'][Math.floor(Math.random()*4)];
+    // place near yes button center
+    const startX = rect.left + rect.width/2 + rint(-18,18);
+    const startY = rect.top + rect.height/2 + rint(-8,8);
+    b.style.left = startX + 'px';
+    b.style.top = startY + 'px';
+    b.style.opacity = 1;
+    b.style.transform = `translate(-50%,-50%)`;
+    document.body.appendChild(b);
+    // random float direction
+    b.style.left = (startX + rint(-40,40)) + 'px';
+    b.style.top = (startY + rint(-120,-40)) + 'px';
+    setTimeout(()=> b.remove(), 900);
+  }
+});
+
+/* ---------- Accessibility: Enter key to start ---------- */
+herNameInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ startBtn.click(); }
+});
+
+/* ---------- Small improvement: ensure noBtn never goes outside due to rapid mousemove ----------
+   Also: drag protection — if user tries to click/hold noBtn, it still moves.
+*/
+noBtn.addEventListener('mousemove', (ev)=>{
+  // prevent default selection behavior
+  ev.preventDefault();
+});
+
+/* ---------- initial layout on load (keep buttons within) ---------- */
+window.addEventListener('load', ()=> {
+  // position nothing until start; but ensure card center is set for early sizing
+  positionButtonsInitial();
+});
+
+</script>
+</body>
+</html>
